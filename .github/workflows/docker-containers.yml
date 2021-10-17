@@ -22,4 +22,12 @@ jobs:
         with:
           push: true
           tags: encore428/amtodo:latest
-
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Run Snyk to check Docker image for vulnerabilities
+      uses: snyk/actions/docker@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        image: encore428/amtodo
