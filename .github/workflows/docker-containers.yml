@@ -18,10 +18,10 @@ jobs:
       -
         name: Build and push
         id: docker_build
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          tags: encore428/amtodo:latest
+
+
+
+
   security:
     runs-on: ubuntu-latest
     steps:
@@ -30,4 +30,4 @@ jobs:
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
-        image: encore428/amtodo
+        image: amtodo
