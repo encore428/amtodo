@@ -79,7 +79,6 @@ jobs:
       -
         name: docker push
         run: docker push encore428/amtodo:latest
-jobs:
   heroku:
     runs-on: ubuntu-latest
     steps:
