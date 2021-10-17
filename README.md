@@ -1,26 +1,29 @@
-## Fundamentals in Developer Tools - Day 3 Homework
+# Fundamentals in Developer Tools - Day 3 Homework
 
-# Using the same code base.
+The app has been deployed at https://encoreamtodo.herokuapp.com/
+
+## Using the same code base.
 
 This refers to the code contained in the repository https://github.com/stanleynguyen/amongus-todo.  In order
 not to run into unnecessary confusions, I copied the code and create this separate repository instead of performing a fork. 
 You may refer to the original repository for original `README.me` and other documentation.
    
-# Create a Dockerfile for the code base
+## Create a Dockerfile for the code base
 
-`Dockerfile` was created.  This Dockerfile starts with an image of `alpine`. It continues to install `nodejs` and `npm`.  
+`Dockerfile` was created.  It starts with an image of `alpine`. It continues to install `nodejs` and `npm`.  
 After that, application folders and files are copied into a docker working directory by the name `app`, followed by `npm install`.
 Port `3000` is then exposed.  Finally, to make the docker image executable, entry point was created to run `npm start` on
 start up.
 
-Creation of `Dockerfile` does not create a docker imgae.  It only defines the parameters related to its creation.  Normall, the 
-command `docker image ...` has to be used to create it.  In this exercise, the creation will be automated.  See next step.
+Creation of `Dockerfile` does not create a docker imgae.  It only defines the parameters related to its creation. 
+Normally, the command `docker image ...` has to be used to create it.  In this exercise, the creation will be 
+automated.  See next step.
    
 This <a href="https://www.youtube.com/watch?v=EIHY_CY5J0k">YouTube clip</a> gives a very easy to understand and follow 
 account of the process, and was the reference for this step of the exercise.
 
 
-# CI/CD
+## CI/CD
 
 `.github/workflows/docker-containers.yml` was created and it begins with these lines:
 
@@ -31,20 +34,24 @@ account of the process, and was the reference for this step of the exercise.
 04   push:
 05     branches:
 06       - "main"
+07
+08 jobs:
+
 ```
 
-This specifies that actions defined in this file will be triggered whenever there is a `push` at branch `main`.
+Name of this action is `build-push-docjer-image', and it has a few jobs that follow.
+
+This specifies that jobs defined in this file will be triggered whenever there is a `push` at branch `main`.
 
 Reference was made to https://github.com/marketplace/actions/build-and-push-docker-images for this step of the exercise.
 
    
-# Run a Docker build
+## Run a Docker build
 
 `.github/workflows/docker-containers.yml` has as its first job `build` defined to build a docker image.
 
 ```
- 8 jobs:
- 9   build:
+09   build:
 10     runs-on: ubuntu-latest
 11     steps:
 ...
@@ -66,16 +73,16 @@ Reference was made to https://github.com/marketplace/actions/build-and-push-dock
   personal docker id.  It is necessary to name the image with one's id as the pefix, so that when the image is pushed to
   docker hub, it will be stored in your own library.
   
-- Line 24 specifies that the output is to be written to `/tmp/myimage.tar`.  This serves to keep the image for the next step.
+- Line 24 specifies that the output is to be written to `/tmp/myimage.tar`.  This serves to keep the image for the next job.
 
-- Reference was made to https://github.com/marketplace/actions/build-and-push-docker-images for this step of the exercise.
+- Reference was made to https://github.com/marketplace/actions/build-and-push-docker-images for this part of the exercise.
 
 - https://github.com/docker/build-push-action/blob/master/docs/advanced/share-image-jobs.md was referenced on how images can be
   shared between jobs.
 
-# Run a security check against the docker image
+## Run a security check against the docker image
 
-`.github/workflows/docker-containers.yml` was modified to add the following lines to perform :
+`.github/workflows/docker-containers.yml` was modified to add the following lines to perform code inspection:
 
 ```
 32   inspect:
@@ -114,7 +121,7 @@ as `Auth Token` from https://app.snyk.io/account.
 
 - Reference was made to https://github.com/marketplace/actions/build-and-push-docker-images for this step of the exercise.
 
-# If the security check passes...
+## If the security check passes...
 
 ```
 58    rollout:
@@ -122,10 +129,10 @@ as `Auth Token` from https://app.snyk.io/account.
 60     needs: inspect
 ```
 
-Line 60 specifies that the next step should follows the completion of the previous step `inspect`.
+Line 60 specifies that the rollout job should follow the completion of the previous job `inspect`.
 
 
-# ...push the image into Docker hub
+## ...push the image into Docker hub
 
 ```
 61     steps:
@@ -149,11 +156,11 @@ Line 60 specifies that the next step should follows the completion of the previo
 
 - Line 81 executes the docker command push to publish the image to personal library.
 
-# Run a deployment to Heroku
+## Run a deployment to Heroku
 
 The following segment is added to the end of `.github/workflows/docker-containers.yml`, base on instructions found
 in https://github.com/marketplace/actions/deploy-to-heroku#deploy-with-docker.  It should be noted that instructions
-make no reference to the docker image encore428/amtodo.  It is believe that this step rebuild the docker image independently.
+make no reference to the docker image encore428/amtodo.  This job rebuild the docker image independently.
 ```
 82   heroku:
 83     runs-on: ubuntu-latest
@@ -174,7 +181,10 @@ make no reference to the docker image encore428/amtodo.  It is believe that this
 
 - In the repository, create `secret.HEROKU_API_KEY` using the key revealed above.
 
-# What about port nmapping
+Now proceed to push all these changes to Github.  Github action will take over and perform all the above jobs. 
+All the end, 
+
+## What about port mapping
 
 According to https://devcenter.heroku.com/articles/container-registry-and-runtime#dockerfile-commands-and-runtime, 
 Heroku ignores `EXPOSE` in `Dockerfile`.  It instead assigns a port at time of application start up, and the port is
@@ -195,9 +205,25 @@ It reads `PORT` from `.env`, and uses `3000` as default.  In the case of Heroku 
 the Application log has these lines:
 
 ```
-2021-10-17T09:03:42.798455+00:00 app[web.1]: UP AND RUNNING @ 42902
-2021-10-17T09:03:42.939336+00:00 heroku[web.1]: State changed from starting to up
+2021-10-17T09:31:04.444454+00:00 app[web.1]: UP AND RUNNING @ 37654
+2021-10-17T09:31:04.774583+00:00 heroku[web.1]: State changed from starting to up
 ```
+## Run Snyk check
+(./snyk.png)
+
+## Github Action
+(./action.png)
+
+## Docker image push
+(./docker.png)
+
+## Heroku Deployment
+(./heroku.png)
+
+## App on Heroku
+(./encoremotodo.png)
+
 
 ## Original PDF page on the homework
+
 ![Homework pdf](./CI_CD.pdf)
