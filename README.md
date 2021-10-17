@@ -1,104 +1,203 @@
-# Among Us TODOs API
+## Fundamentals in Developer Tools - Day 3 Homework
 
-![Among Us banner](docs/img/banner.jpg)
+# Using the same code base.
 
-Fake REST API server of tasks from Among Us
+This refers to the code contained in the repository https://github.com/stanleynguyen/amongus-todo.  In order
+not to run into unnecessary confusions, I copied the code and create this separate repository instead of performing a fork. 
+You may refer to the original repository for original `README.me` and other documentation.
+   
+# Create a Dockerfile for the code base
 
-## Getting Started
+`Dockerfile` was created.  This Dockerfile starts with an image of `alpine`. It continues to install `nodejs` and `npm`.  
+After that, application folders and files are copied into a docker working directory by the name `app`, followed by `npm install`.
+Port `3000` is then exposed.  Finally, to make the docker image executable, entry point was created to run `npm start` on
+start up.
 
-This application is backed by the default data from a json file (default to be `db.json`, however it can be specified through an environment variable).
-The underlying server that power the application is [json-server](https://github.com/typicode/json-server)
+Creation of `Dockerfile` does not create a docker imgae.  It only defines the parameters related to its creation.  Normall, the 
+command `docker image ...` has to be used to create it.  In this exercise, the creation will be automated.  See next step.
+   
+This <a href="https://www.youtube.com/watch?v=EIHY_CY5J0k">YouTube clip</a> gives a very easy to understand and follow 
+account of the process, and was the reference for this step of the exercise.
 
-### Starting the application
 
-Simply `npm start` and the server will be started with the default configurations on port 3000 and db file to be `db.json`
+# CI/CD
 
-### App-level configurations
-
-- `DB`: path to the json file that will be used as the database
-- `PORT`: port that the app will start on
-
-### Testing
-
-- Code linting: `npm run lint`
-- Full test suite: `npm test`
-
-## API Reference
-
-Data from the json database file will be loaded every time the app starts and db writes will be made to the same file as well. Hence, a note on if the data is not commited into source, we might see differences between environments.
-
-Listed below are basic usages of the API, more advanced usages can be found [here](https://github.com/typicode/json-server#routes).
-
-### POST /todos
-
-Create a new tasks
+`.github/workflows/docker-containers.yml` was created and it begins with these lines:
 
 ```
-POST /todos
-
-{
-    text: string,
-    type: "short" | "long" | "common"
-}
+01 name: build-push-docker-image
+02 
+03 on:
+04   push:
+05     branches:
+06       - "main"
 ```
 
-### GET /todos/:id
+This specifies that actions defined in this file will be triggered whenever there is a `push` at branch `main`.
 
-Get task by ID
+Reference was made to https://github.com/marketplace/actions/build-and-push-docker-images for this step of the exercise.
 
-```
-GET /todos/:id
-```
+   
+# Run a Docker build
 
-### GET /todos
-
-Get tasks
+`.github/workflows/docker-containers.yml` has as its first job `build` defined to build a docker image.
 
 ```
-GET /todos
-```
+ 8 jobs:
+ 9   build:
+10     runs-on: ubuntu-latest
+11     steps:
+...
+19         name: Build and export
+20         uses: docker/build-push-action@v2
+21         with:
+22           context: .
+23           tags: encore428/amtodo:latest
+24           outputs: type=docker,dest=/tmp/myimage.tar
+25       -
+26         name: Upload artifact
+27         uses: actions/upload-artifact@v2
+28         with:
+29           name: myimage
+30           path: /tmp/myimage.tar     
+```   
 
-Possible query parameters:
+- Line 23 defines the name and version of the image to be built as `encore428/amtodos:latest`.  Note that `encore428` is my
+  personal docker id.  It is necessary to name the image with one's id as the pefix, so that when the image is pushed to
+  docker hub, it will be stored in your own library.
+  
+- Line 24 specifies that the output is to be written to `/tmp/myimage.tar`.  This serves to keep the image for the next step.
 
-- `q`: full text search
-- `_page` and `_limit`: paginate
-- any fields from the TODO object: filter using specific fields
-- `_start` and `_end`: slice based on TODO ID
+- Reference was made to https://github.com/marketplace/actions/build-and-push-docker-images for this step of the exercise.
 
-### PUT /todos/:id
+- https://github.com/docker/build-push-action/blob/master/docs/advanced/share-image-jobs.md was referenced on how images can be
+  shared between jobs.
 
-Replace whole TODO item content
+# Run a security check against the docker image
 
-```
-PUT /todos/:id
-
-{
-    text: string,
-    type: "common" | "long" | "short"
-}
-```
-
-### PATCH /todos/:id
-
-Partial update TODO item
-
-```
-PATCH /todos/:id
-
-{
-    text?: string,
-    type?: "common" | "long" | "short"
-}
-```
-
-### DELETE /todos/:id
-
-Delete a TODO item
+`.github/workflows/docker-containers.yml` was modified to add the following lines to perform :
 
 ```
-DELETE /todos/:id
+32   inspect:
+33     runs-on: ubuntu-latest
+34     needs: build
+...
+40         name: Download artifact
+41         uses: actions/download-artifact@v2
+42         with:
+43           name: myimage
+44           path: /tmp
+45       -
+46         name: Load image
+47         run: |
+48           docker load --input /tmp/myimage.tar
+49           docker image ls -a
+50       -
+51         name: Run Snyk to check Docker image for vulnerabilities
+52         uses: snyk/actions/docker@master
+53         env:
+54           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+55         with:
+56           image: encore428/amtodo:latest
 ```
 
-## Contributing
+- `secrets.SNYK_TOKEN` has to be set-up as one of the secrets in this repository.  The value of the secret is to be obtained
+as `Auth Token` from https://app.snyk.io/account.
 
-For any requests, bug or comments, please [open an issue](https://github.com/stanleynguyen/amongus-todo/issues) or [submit a pull request](https://github.com/stanleynguyen/amongus-todo/pulls).
+- Line 34 specifies that this step can be executed only after the preious step `build`.
+
+- Lines 40 to 49 downloads the tar file created during the previous step, and loads the built image.
+
+- Lines 51 to 56 performs the scan.
+
+- Line 56 specifies that the docker image to be scanned is `encore428/amtodo` under the heading `image`.
+
+- Reference was made to https://github.com/marketplace/actions/build-and-push-docker-images for this step of the exercise.
+
+# If the security check passes...
+
+```
+58    rollout:
+59     runs-on: ubuntu-latest
+60     needs: inspect
+```
+
+Line 60 specifies that the next step should follows the completion of the previous step `inspect`.
+
+
+# ...push the image into Docker hub
+
+```
+61     steps:
+...
+73       -
+74         name: Login to Docker Hub
+75         uses: docker/login-action@v1
+76         with:
+77           username: encore428
+78           password: ${{ secrets.DOCKERHUB_TOKEN }}
+79       -
+80         name: docker push
+81         run: docker push encore428/amtodo:latest
+```
+
+- In the repository, create `secret.DOCKERHUB_TOKEN`.  This stores my personal docker password.  MY docker id is `encore428`.
+
+- Lines 62 to 72 again downloads the tar file created during the `build` step, and loads the built image.
+
+- Lines 74 to 78 logs in to docker using personal id.
+
+- Line 81 executes the docker command push to publish the image to personal library.
+
+# Run a deployment to Heroku
+
+The following segment is added to the end of `.github/workflows/docker-containers.yml`, base on instructions found
+in https://github.com/marketplace/actions/deploy-to-heroku#deploy-with-docker.  It should be noted that instructions
+make no reference to the docker image encore428/amtodo.  It is believe that this step rebuild the docker image independently.
+```
+82   heroku:
+83     runs-on: ubuntu-latest
+84     needs: rollout
+85     steps:
+86       - uses: actions/checkout@v2
+87       - uses: akhileshns/heroku-deploy@v3.12.12
+88         with:
+89           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+90           heroku_app_name: encoreamtodo
+91           heroku_email: encore428@gmail.com
+92           usedocker: true
+```
+
+- Go to https://dashboard.heroku.com/apps and create an app.  App `encoreamtodo` was created.
+
+- Go to https://dashboard.heroku.com/account to reveal the API Key.
+
+- In the repository, create `secret.HEROKU_API_KEY` using the key revealed above.
+
+# What about port nmapping
+
+According to https://devcenter.heroku.com/articles/container-registry-and-runtime#dockerfile-commands-and-runtime, 
+Heroku ignores `EXPOSE` in `Dockerfile`.  It instead assigns a port at time of application start up, and the port is
+placed into environment variable PORT which the app should read and make use of.
+
+In this app, the program `index.js` has the following lines:
+```js
+const server = require('./server');
+
+const port = process.env.PORT || 3000;
+server.listen(port, () => {
+  // eslint-disable-next-line no-console
+  console.log('UP AND RUNNING @', port);
+});
+```
+
+It reads `PORT` from `.env`, and uses `3000` as default.  In the case of Heroku deployment, the port was provided for, and
+the Application log has these lines:
+
+```
+2021-10-17T09:03:42.798455+00:00 app[web.1]: UP AND RUNNING @ 42902
+2021-10-17T09:03:42.939336+00:00 heroku[web.1]: State changed from starting to up
+```
+
+## Original PDF page on the homework
+![Homework pdf](./CI_CD.pdf)
