@@ -20,7 +20,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          tags: amtodo:latest
+          tags: encore428/amtodo:latest
           outputs: type=docker,dest=/tmp/myimage.tar
       -
         name: Upload artifact
@@ -53,7 +53,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          image: amtodo:latest
+          image: encore428/amtodo:latest
           
   rollout:
     runs-on: ubuntu-latest
