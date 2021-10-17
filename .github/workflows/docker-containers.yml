@@ -30,4 +30,4 @@ jobs:
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
-        image: amtodo
+        image: amtodo:latest
