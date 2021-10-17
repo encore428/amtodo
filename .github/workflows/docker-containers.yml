@@ -6,28 +6,51 @@ on:
       - "main"
 
 jobs:
-  docker:
+  build:
     runs-on: ubuntu-latest
     steps:
       -
-        name: Login to DockerHub
-        uses: docker/login-action@v1 
-        with:
-          username: encore428
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        name: Checkout
+        uses: actions/checkout@v2
       -
-        name: Build and push
-        id: docker_build
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Build and export
         uses: docker/build-push-action@v2
         with:
-          push: false
+          context: .
           tags: amtodo:latest
+          outputs: type=docker,dest=/tmp/myimage.tar
+      -
+        name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: myimage
+          path: /tmp/myimage.tar     
+          
   security:
     runs-on: ubuntu-latest
+    needs: build
     steps:
-    - name: Run Snyk to check Docker image for vulnerabilities
-      uses: snyk/actions/docker@master
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      with:
-        image: amtodo:latest
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: myimage
+          path: /tmp
+      -
+        name: Load image
+        run: |
+          docker load --input /tmp/myimage.tar
+          docker image ls -a
+      -
+        name: Run Snyk to check Docker image for vulnerabilities
+        uses: snyk/actions/docker@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          image: amtodo:latest
