@@ -195,7 +195,7 @@ Now proceed to push all these changes to Github.  Github action will take over a
 ![Heroku Deployment](./heroku.png)
 
 ## App on Heroku
-![App on Heroku](./encoremotodo.png)
+![App on Heroku](./encoreamtodo.png)
 
 
 ## What about port mapping
