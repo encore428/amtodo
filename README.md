@@ -226,4 +226,4 @@ the Application log has these lines:
 
 ## Original PDF page on the homework
 
-![Homework pdf](./CI_CD.pdf)
+![Homework pdf](./CI_CD.png)
